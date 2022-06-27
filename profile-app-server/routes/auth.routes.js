@@ -3,6 +3,7 @@ const router = require('express').Router();
 // ℹ️ Handles password encryption
 const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 // How many rounds should bcrypt run the salt (default [10 - 12 rounds])
 const saltRounds = 10;
@@ -10,13 +11,12 @@ const saltRounds = 10;
 // Require the User model in order to interact with the database
 const User = require('../models/User.model');
 
+//protected routes using the jwt token
+const { isAuthenticated } = require('../middleware/jwt.middleware');
+
 // Require necessary (isLoggedOut and isLiggedIn) middleware in order to control access to specific routes
 const isLoggedOut = require('../middleware/isLoggedOut');
 const isLoggedIn = require('../middleware/isLoggedIn');
-
-router.get('/loggedin', (req, res) => {
-  res.json(req.user);
-});
 
 router.post('/signup', (req, res) => {
   const { username, password, campus, course } = req.body;
@@ -85,7 +85,7 @@ router.post('/signup', (req, res) => {
 
 router.post('/login', (req, res, next) => {
   const { username, password } = req.body;
-
+  console.log('login');
   if (!username) {
     return res
       .status(400)
@@ -113,10 +113,23 @@ router.post('/login', (req, res, next) => {
         if (!isSamePassword) {
           return res.status(400).json({ errorMessage: 'Wrong credentials.' });
         }
-        console.log('here is the user from the DB', user);
-        // req.session.user = user;
-        // req.session.user = user._id; // ! better and safer but in this case we saving the entire user object
-        return res.json(user);
+        // destructor the user without the password to use for the payload in the jwt
+        const { _id, username, campus, course } = user;
+
+        // Create an object that will be set as the token payload
+        const payload = { _id, username, campus, course };
+        console.log('payload login', payload);
+
+        // Create and sign the token
+        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+          algorithm: 'HS256',
+          expiresIn: '6h',
+        });
+
+        console.log('web token', authToken);
+
+        // Send the token as the response
+        res.status(200).json({ authToken: authToken });
       });
     })
 
@@ -129,16 +142,12 @@ router.post('/login', (req, res, next) => {
 });
 
 router.get('/logout', isLoggedIn, (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ errorMessage: err.message });
-    }
-    res.json({ message: 'Done' });
-  });
+  console.log('logged out');
 });
 
-router.get('/verify', (req, res) => {
-  console.log('verify route');
+router.get('/verify', isAuthenticated, (req, res) => {
+  console.log(`req.payload`, req.payload);
+  res.status(200).json(req.payload);
 });
 
 module.exports = router;

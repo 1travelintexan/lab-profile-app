@@ -1,0 +1,8 @@
+POST  http://localhost:5005/api/upload HTTP/1.1
+content-type: application/json
+# authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MmI3NTg2ZDQ4ZGE0NGQ5YjViY2Y5ZWUiLCJpYXQiOjE2NTYyNTk4ODYsImV4cCI6MTY1NjI4MTQ4Nn0.HsI3aRk2PtDipnQv269OXbmwYyJs9e5PQGSx_pMxeAo
+
+{
+    "username": "test",
+    "email": "Wed, 21 Oct 2015 18:27:50 GMT"
+}
