@@ -25,6 +25,7 @@ const userSchema = new Schema(
     },
     course: String,
     image: String,
+    pets: [{ type: Schema.Types.ObjectId, ref: 'Pet' }],
   },
 
   {

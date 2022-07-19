@@ -85,7 +85,6 @@ router.post('/signup', (req, res) => {
 
 router.post('/login', (req, res, next) => {
   const { username, password } = req.body;
-  console.log('login');
   if (!username) {
     return res
       .status(400)
@@ -118,7 +117,6 @@ router.post('/login', (req, res, next) => {
 
         // Create an object that will be set as the token payload
         const payload = { _id, username, campus, course };
-        console.log('payload login', payload);
 
         // Create and sign the token
         const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
@@ -126,13 +124,10 @@ router.post('/login', (req, res, next) => {
           expiresIn: '6h',
         });
 
-        console.log('web token', authToken);
-
         // Send the token as the response
         res.status(200).json({ authToken: authToken });
       });
     })
-
     .catch((err) => {
       // in this case we are sending the error handling to the error handling middleware that is defined in the error handling file
       // you can just as easily run the res.status that is commented out below
