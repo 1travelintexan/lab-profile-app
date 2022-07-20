@@ -8,8 +8,9 @@ const jwt = require('jsonwebtoken');
 // How many rounds should bcrypt run the salt (default [10 - 12 rounds])
 const saltRounds = 10;
 
-// Require the User model in order to interact with the database
+// Require the models in order to interact with the database
 const User = require('../models/User.model');
+const PetModel = require('../models/Pet.model');
 
 //protected routes using the jwt token
 const { isAuthenticated } = require('../middleware/jwt.middleware');
@@ -141,8 +142,50 @@ router.get('/logout', isLoggedIn, (req, res) => {
 });
 
 router.get('/verify', isAuthenticated, (req, res) => {
-  console.log(`req.payload`, req.payload);
+  // console.log(`req.payload`, req.payload);
   res.status(200).json(req.payload);
+});
+
+//dog routes
+router.get('/fetch-pets', isAuthenticated, (req, res) => {
+  PetModel.find()
+    //populate the owners of the pets
+    .populate('owner')
+    //then filter all the pets to only the current users pets with the same _id
+    .then((allPets) => {
+      const ownerPets = allPets
+        .filter((pet) => {
+          const { owner } = pet;
+          return req.payload._id == owner._id;
+        })
+        //remove the hashed password of the owner of the pets
+        .map((pet) => {
+          pet.owner.password = '****';
+          return pet;
+        });
+      res.status(200).json(ownerPets);
+    })
+    .catch((error) => {
+      console.log(error);
+      return res.status(500).json({ errorMessage: error.message });
+    });
+});
+
+router.post('/create-pet', (req, res) => {
+  console.log('here is the body for create pet', req.body);
+  if (!req.body.name) {
+    return res
+      .status(400)
+      .json({ errorMessage: 'Please provide your pets name.' });
+  }
+  PetModel.create(req.body)
+    .then((newPet) => {
+      res.status(201).json(newPet);
+    })
+    .catch((error) => {
+      console.log(error);
+      return res.status(500).json({ errorMessage: error.message });
+    });
 });
 
 module.exports = router;
