@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const uploader = require('../middleware/cloudinary.config.js');
 
 // ℹ️ Handles password encryption
 const bcrypt = require('bcrypt');
@@ -171,14 +172,25 @@ router.get('/fetch-pets', isAuthenticated, (req, res) => {
     });
 });
 
-router.post('/create-pet', (req, res) => {
-  console.log('here is the body for create pet', req.body);
+router.post('/create-pet', uploader.single('petImage'), (req, res) => {
+  console.log(
+    'here is the body for create pet',
+    req.body,
+    'image',
+    req.file.path
+  );
+  const petToCreate = {
+    ...req.body,
+    petImage: req.file.path,
+  };
+  console.log('pet', petToCreate);
   if (!req.body.name) {
     return res
       .status(400)
       .json({ errorMessage: 'Please provide your pets name.' });
   }
-  PetModel.create(req.body)
+
+  PetModel.create(petToCreate)
     .then((newPet) => {
       res.status(201).json(newPet);
     })
