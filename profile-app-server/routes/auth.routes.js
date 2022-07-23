@@ -19,9 +19,11 @@ const { isAuthenticated } = require('../middleware/jwt.middleware');
 // Require necessary (isLoggedOut and isLiggedIn) middleware in order to control access to specific routes
 const isLoggedOut = require('../middleware/isLoggedOut');
 const isLoggedIn = require('../middleware/isLoggedIn');
+const { rawListeners } = require('../models/User.model');
 
 router.post('/signup', (req, res) => {
   const { username, password, campus, course } = req.body;
+
   console.log('here is the body for signup', req.body);
   if (!username) {
     return res
@@ -65,6 +67,8 @@ router.post('/signup', (req, res) => {
           password: hashedPassword,
           campus,
           course,
+          profileImage:
+            'https://4.bp.blogspot.com/-8rXJLE8Qt3E/Tea7LzDVg9I/AAAAAAAAAMA/zERVqZkFej4/s1600/6.jpg',
         });
       })
       .then((user) => {
@@ -115,10 +119,10 @@ router.post('/login', (req, res, next) => {
           return res.status(400).json({ errorMessage: 'Wrong credentials.' });
         }
         // destructor the user without the password to use for the payload in the jwt
-        const { _id, username, campus, course } = user;
+        const { _id, username, campus, course, profileImage } = user;
 
         // Create an object that will be set as the token payload
-        const payload = { _id, username, campus, course };
+        const payload = { _id, username, campus, course, profileImage };
 
         // Create and sign the token
         const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
@@ -154,17 +158,21 @@ router.get('/fetch-pets', isAuthenticated, (req, res) => {
     .populate('owner')
     //then filter all the pets to only the current users pets with the same _id
     .then((allPets) => {
-      const ownerPets = allPets
-        .filter((pet) => {
-          const { owner } = pet;
-          return req.payload._id == owner._id;
-        })
-        //remove the hashed password of the owner of the pets
-        .map((pet) => {
+      console.log('here are all the pets', allPets);
+      const ownerPets = allPets.filter((pet) => {
+        const { owner } = pet;
+        return req.payload._id == owner._id;
+      });
+      //remove the hashed password of the owner of the pets
+      if (ownerPets.length > 0) {
+        let ownerPetsWithoutPassword = ownerPets.map((pet) => {
           pet.owner.password = '****';
           return pet;
         });
-      res.status(200).json(ownerPets);
+        res.status(200).json(ownerPets);
+      } else {
+        res.status(200);
+      }
     })
     .catch((error) => {
       console.log(error);
@@ -199,5 +207,34 @@ router.post('/create-pet', uploader.single('petImage'), (req, res) => {
       return res.status(500).json({ errorMessage: error.message });
     });
 });
+
+router.post(
+  '/update-user',
+  uploader.single('profileImage'),
+  async (req, res) => {
+    let profileImage;
+    if (req.file !== undefined) {
+      profileImage = req.file.path;
+    } else {
+      profileImage =
+        'https://4.bp.blogspot.com/-8rXJLE8Qt3E/Tea7LzDVg9I/AAAAAAAAAMA/zERVqZkFej4/s1600/6.jpg';
+    }
+    let userToUpdate = {
+      ...req.body,
+      profileImage: profileImage,
+    };
+    console.log('body', userToUpdate, req.body);
+    try {
+      let userUpdated = await User.findOneAndUpdate(
+        { _id: req.body._id },
+        { userToUpdate }
+      );
+      console.log('here is the updated user', userUpdated);
+      res.status(204).json(userUpdated);
+    } catch (err) {
+      console.log('there was an error updating your user', err);
+    }
+  }
+);
 
 module.exports = router;
