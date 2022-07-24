@@ -146,9 +146,11 @@ router.get('/logout', isLoggedIn, (req, res) => {
   console.log('logged out');
 });
 
-router.get('/verify', isAuthenticated, (req, res) => {
-  // console.log(`req.payload`, req.payload);
-  res.status(200).json(req.payload);
+router.get('/verify', isAuthenticated, async (req, res) => {
+  console.log(`req.payload`, req.payload);
+  let currentUser = await User.findById(req.payload._id);
+  console.log('here is your current user from /verify', currentUser);
+  res.status(200).json(currentUser);
 });
 
 //dog routes
@@ -181,17 +183,10 @@ router.get('/fetch-pets', isAuthenticated, (req, res) => {
 });
 
 router.post('/create-pet', uploader.single('petImage'), (req, res) => {
-  console.log(
-    'here is the body for create pet',
-    req.body,
-    'image',
-    req.file.path
-  );
   const petToCreate = {
     ...req.body,
     petImage: req.file.path,
   };
-  console.log('pet', petToCreate);
   if (!req.body.name) {
     return res
       .status(400)
@@ -212,24 +207,25 @@ router.post(
   '/update-user',
   uploader.single('profileImage'),
   async (req, res) => {
+    const { username, campus, course } = req.body;
     let profileImage;
-    if (req.file !== undefined) {
+    if (req.file) {
       profileImage = req.file.path;
-    } else {
-      profileImage =
-        'https://4.bp.blogspot.com/-8rXJLE8Qt3E/Tea7LzDVg9I/AAAAAAAAAMA/zERVqZkFej4/s1600/6.jpg';
     }
-    let userToUpdate = {
-      ...req.body,
-      profileImage: profileImage,
-    };
-    console.log('body', userToUpdate, req.body);
     try {
       let userUpdated = await User.findOneAndUpdate(
         { _id: req.body._id },
-        { userToUpdate }
+        {
+          username: username,
+          campus: campus,
+          course: course,
+          profileImage: profileImage,
+        },
+        {
+          new: true,
+        }
       );
-      console.log('here is the updated user', userUpdated);
+
       res.status(204).json(userUpdated);
     } catch (err) {
       console.log('there was an error updating your user', err);
