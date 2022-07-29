@@ -92,9 +92,7 @@ router.post('/signup', (req, res) => {
 router.post('/login', (req, res, next) => {
   const { username, password } = req.body;
   if (!username) {
-    return res
-      .status(400)
-      .json({ errorMessage: 'Please provide your username.' });
+    return res.status(400).json({ errorMessage: 'Please enter a username' });
   }
 
   // Here we use the same logic as above
@@ -110,13 +108,17 @@ router.post('/login', (req, res, next) => {
     .then((user) => {
       // If the user isn't found, send the message that user provided wrong credentials
       if (!user) {
-        return res.status(400).json({ errorMessage: 'Wrong credentials.' });
+        return res
+          .status(400)
+          .json({ errorMessage: 'Please provide a valid username' });
       }
 
       // If user is found based on the username, check if the in putted password matches the one saved in the database
       bcrypt.compare(password, user.password).then((isSamePassword) => {
         if (!isSamePassword) {
-          return res.status(400).json({ errorMessage: 'Wrong credentials.' });
+          return res
+            .status(400)
+            .json({ errorMessage: "Password doesn't match" });
         }
         // destructor the user without the password to use for the payload in the jwt
         const { _id, username, campus, course, profileImage } = user;
@@ -138,7 +140,7 @@ router.post('/login', (req, res, next) => {
       // in this case we are sending the error handling to the error handling middleware that is defined in the error handling file
       // you can just as easily run the res.status that is commented out below
       next(err);
-      // return res.status(500).render("login", { errorMessage: err.message });
+      return res.status(500).json({ errorMessage: err.message });
     });
 });
 
